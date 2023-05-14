@@ -1,0 +1,8 @@
+<div>
+	<h1>Account recovery</h1>
+	<p>You have created a request to restore access to your account <b><%= props.content.login %></b>. Follow the link to continue: <a href="<%= process.env.SERVICE_GATEWAY %>/reset?verifyKey=<%= props.content.emailVerifyKey %>">
+		<%= process.env.SERVICE_GATEWAY %>/reset?verifyKey=<%= props.content.emailVerifyKey %>
+	</a>
+	</p>
+	<p>If you have any questions, you can contact support.</p>
+</div>

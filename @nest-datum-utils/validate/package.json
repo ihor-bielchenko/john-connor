@@ -1,0 +1,12 @@
+{
+  "name": "@nest-datum-utils/validate",
+  "version": "1.0.0",
+  "description": "Scripts for validating input values.",
+  "author": "ihor-bielchenko",
+  "license": "ISC",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [ "validate", "input", "field", "react", "nest", "check", "utils", "datum", "script" ]
+}
