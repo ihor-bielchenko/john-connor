@@ -5,9 +5,8 @@ import {
 } from '@nest-datum-common/exceptions';
 import { strToObj as utilsFormatStrToObj } from '@nest-datum-utils/format';
 import {
-	objFilled as utilsCheckObjFilled,
-	arrFilled as utilsCheckArrFilled,
 	exists as utilsCheckExists,
+	strObj as utilsCheckStrObj,
 	strArr as utilsCheckStrArr,
 	strIdExists as utilsCheckStrIdExists,
 	strDescription as utilsCheckStrDescription,
@@ -21,29 +20,29 @@ export class Controller {
 		const output = {};
 
 		if (utilsCheckExists(options['select'])) {
-			if (!utilsCheckObjFilled(options['select']) 
-				&& !utilsCheckArrFilled(options['select'])) {
+			if (!utilsCheckStrObj(options['select']) 
+				&& !utilsCheckStrArr(options['select'])) {
 				throw new MethodNotAllowedException(`Property "select" is not valid.`);
 			}
 			output['select'] = utilsFormatStrToObj(options['select']);
 		}
 		if (utilsCheckExists(options['relations'])) {
-			if (!utilsCheckObjFilled(options['relations']) 
-				&& !utilsCheckArrFilled(options['relations'])) {
+			if (!utilsCheckStrObj(options['relations']) 
+				&& !utilsCheckStrArr(options['relations'])) {
 				throw new MethodNotAllowedException(`Property "relations" is not valid.`);
 			}
 			output['relations'] = utilsFormatStrToObj(options['relations']);
 		}
 		if (utilsCheckExists(options['sort'])) {
-			if (!utilsCheckObjFilled(options['sort']) 
-				&& !utilsCheckArrFilled(options['sort'])) {
+			if (!utilsCheckStrObj(options['sort']) 
+				&& !utilsCheckStrArr(options['sort'])) {
 				throw new MethodNotAllowedException(`Property "sort" is not valid.`);
 			}
 			output['sort'] = utilsFormatStrToObj(options['sort']);
 		}
 		if (utilsCheckExists(options['filter'])) {
-			if (!utilsCheckObjFilled(options['filter']) 
-				&& !utilsCheckArrFilled(options['filter'])) {
+			if (!utilsCheckStrObj(options['filter']) 
+				&& !utilsCheckStrArr(options['filter'])) {
 				throw new MethodNotAllowedException(`Property "filter" is not valid.`);
 			}
 			output['filter'] = utilsFormatStrToObj(options['filter']);
@@ -77,15 +76,15 @@ export class Controller {
 		};
 
 		if (utilsCheckExists(options['select'])) {
-			if (!utilsCheckObjFilled(options['select']) 
-				&& !utilsCheckArrFilled(options['select'])) {
+			if (!utilsCheckStrObj(options['select']) 
+				&& !utilsCheckStrArr(options['select'])) {
 				throw new MethodNotAllowedException(`Property "select" is not valid.`);
 			}
 			output['select'] = utilsFormatStrToObj(options['select']);
 		}
 		if (utilsCheckExists(options['relations'])) {
-			if (!utilsCheckObjFilled(options['relations']) 
-				&& !utilsCheckArrFilled(options['relations'])) {
+			if (!utilsCheckStrObj(options['relations']) 
+				&& !utilsCheckStrArr(options['relations'])) {
 				throw new MethodNotAllowedException(`Property "relations" is not valid.`);
 			}
 			output['relations'] = utilsFormatStrToObj(options['relations']);

@@ -9,8 +9,7 @@ async function bootstrap() {
 	const neuronService = appModule.get(NeuronService);
 
 	try {
-		console.log('???', await neuronService.chain());
-		// await neuronService.chain();
+		await neuronService.chain();
 	}
 	catch (err) {
 		console.error(err);
