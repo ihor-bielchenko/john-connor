@@ -9,7 +9,9 @@ async function bootstrap() {
 	const neuronService = appModule.get(NeuronService);
 
 	try {
-		await neuronService.chain();
+		const { neuronId, value } = await neuronService.pass(50, '2');
+
+		console.log('Chain ID:', { neuronId, value });
 	}
 	catch (err) {
 		console.error(err);

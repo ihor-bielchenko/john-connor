@@ -5,12 +5,14 @@ import {
 	OneToMany,
 } from 'typeorm';
 import { Chain } from '../chain/chain.entity';
-import { ChainItem } from '../chain-item/chain-item.entity';
 
 @Entity()
 export class Neuron {
 	@PrimaryGeneratedColumn()
 	public id: number;
+
+	@Column({ default: '' })
+	public name: string;
 
 	@Column({ default: 0 })
 	public x: number;
@@ -18,13 +20,11 @@ export class Neuron {
 	@Column({ default: 0 })
 	public y: number;
 
+	@Column('bool')
+	isFortified: boolean;
+
 	@OneToMany(() => Chain, (chain) => chain.neuron, {
 		cascade: true,
 	})
 	public chains: Chain[];
-
-	@OneToMany(() => ChainItem, (chainItem) => chainItem.neuron, {
-		cascade: true,
-	})
-	public chainItems: ChainItem[];
 }

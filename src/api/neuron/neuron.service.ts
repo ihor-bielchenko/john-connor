@@ -5,15 +5,13 @@ import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { 
 	Repository,
 	Connection, 
+	In,
 	Not,
-	MoreThan,
 } from 'typeorm';
-import { arrExistsSub as utilsCheckArrExistsSub } from '@nest-datum-utils/check';
 import { SqlService } from '@nest-datum/sql';
 import { CacheService } from '@nest-datum/cache';
 import { Neuron } from './neuron.entity';
 import { Chain } from '../chain/chain.entity';
-import { ChainItem } from '../chain-item/chain-item.entity';
 import { Data } from '../data/data.entity';
 
 const intervals = {};
@@ -27,51 +25,12 @@ export class NeuronService extends SqlService {
 	constructor(
 		@InjectRepository(Neuron) protected readonly repository: Repository<Neuron>,
 		@InjectRepository(Chain) protected readonly chainRepository: Repository<Chain>,
-		@InjectRepository(ChainItem) protected readonly chainItemRepository: Repository<ChainItem>,
 		@InjectRepository(Data) protected readonly dataRepository: Repository<Data>,
 		@InjectRedis('State') protected readonly redisRepository: Redis,
 		protected readonly connection: Connection,
 		protected readonly repositoryCache: CacheService,
 	) {
 		super();
-	}
-
-	async getChainId(ids: Array<number> = [ 1, 2, 3 ], value: string = '', isNotEqual = false): Promise<number> {
-		const output = await this.connection.query(`SELECT
-				\`chain_item\`.\`id\` AS \`chainItemId\`,
-				\`chain_item\`.\`chainId\` AS \`chainId\`,
-				\`chain_item\`.\`neuronId\` AS \`chainItemNeuronId\`,
-				\`chain_item\`.\`order\` AS \`order\`,
-				\`chain\`.\`neuronId\` AS \`chainNeuronId\`,
-				\`chain\`.\`dataId\` AS \`dataId\`,
-				\`chain\`.\`name\` AS \`chainName\`,
-				\`data\`.\`value\` AS \`value\`,
-				COUNT(\`chain_item\`.\`neuronId\`) as \`length\`
-			FROM \`chain_item\`
-			LEFT JOIN \`chain\`
-			ON \`chainId\` = \`chain\`.\`id\`
-			LEFT JOIN \`data\`
-			ON \`chain\`.\`dataId\` = \`data\`.\`id\`
-			WHERE
-				${!isNotEqual ? `\`data\`.\`value\` = "${value}" AND ` : ''}
-				(${ids
-					.map((neuronId, index) => `(\`chain_item\`.\`neuronId\` = ${neuronId} AND \`chain_item\`.\`order\` = ${index})`)
-					.join(' OR ')})
-			GROUP BY \`chainNeuronId\`
-			HAVING \`length\` = ${ids.length}
-			ORDER BY \`chainNeuronId\`;`);
-
-		if (isNotEqual) {
-			let i = 0;
-
-			while (i < output.length) {
-				i++;
-			}
-		}
-		return ((isNotEqual === false)
-			|| (isNotEqual && output[0] && value !== output[0]['value']))
-			? (output[0] || {})['chainId']
-			: undefined;
 	}
 
 	async getFreePoints(id: number): Promise<Array<number>> {
@@ -142,130 +101,148 @@ export class NeuronService extends SqlService {
 		return output.filter((pointItem) => !neuronItems.find((neuronItem) => neuronItem['x'] === pointItem['x'] && neuronItem['y'] === pointItem['y']));
 	}
 
-	async createChain(ids: Array<number> = [ 1, 2, 3 ], newValue: string = ''): Promise<number> {
-		const points = await this.getFreePoints(ids[ids.length - 1]);
-		const newDataId = ((await this.dataRepository.findOne({
-			where: {
-				value: newValue,
-			},
-		})) || {})['id'] ?? (await this.dataRepository.save({ value: newValue }))['id'];
-
-		const trueNeuronId = (await this.repository.save({
-			x: points[0]['x'],
-			y: points[0]['y'],
-		}))['id'];
-		const falseNeuronId = (await this.repository.save({
-			x: points[1]['x'],
-			y: points[1]['y'],
-		}))['id'];
-		const trueChainId = (await this.chainRepository.save({
-			neuronId: trueNeuronId,
-			dataId: newDataId,
-		}))['id'];
-		const falseChainId = (await this.chainRepository.save({
-			neuronId: falseNeuronId,
-			dataId: newDataId,
-		}))['id'];
-		let i = 0;
-
-		while (i < ids.length) {
-			await this.chainItemRepository.save({
-				chainId: trueChainId,
-				neuronId: ids[i],
-				order: i,
-			});
-			i++;
-		}
-		i = 0;
-		ids = [ ...ids.slice(0, -1), trueNeuronId ];
-		
-		while (i < ids.length) {
-			await this.chainItemRepository.save({
-				chainId: falseChainId,
-				neuronId: ids[i],
-				order: i,
-			});
-			i++;
-		}
-		return trueChainId;
-	}
-
-	async updateState(id: number, index: number, nowData = []): Promise<number> {
-		const newData = [ ...nowData.splice(index, nowData.length), ...nowData ];
-		let i = 0;
-
-		await this.redisRepository.del(String(id));
-		while (i < newData.length) {
-			await this.redisRepository.rpush(String(id), newData[i]);
-			i++;
-		}
-		return newData[0];
-	}
-
-	async nextChain(nowChainId: number, nowIds: Array<number> = [ 1, 2, 3 ], value: string = ''): Promise<number> {
-		const nowChainItems = await this.chainItemRepository.find({
-			where: nowIds.map((neuronId, order) => ({
-				chainId: nowChainId,
-				neuronId,
-				order,
-			})),
-			order: {
-				order: 'ASC',
-			},
-		});
-		const nowChain = await this.chainRepository.findOne({
-			where: {
-				id: nowChainId,
-			},
-		});
-		const newIds = [ ...nowChainItems.map(({ neuronId }) => neuronId), nowChain['neuronId'] ];
-		let newChainId = await this.getChainId(newIds, value);
-
-		if (newChainId > 0) {
-			const nowChainList = (await this.redisRepository.lrange(String(nowIds[0]), 0, -1))
-				.map((item) => Number(item));
-			const newChainListIndex = nowChainList.indexOf(newChainId);
-
-			if (newChainListIndex >= 0) {
-				await this.updateState(nowIds[0], newChainListIndex, nowChainList);
-			}
-			else {
-				await this.redisRepository.lpush(String(nowIds[0]), newChainId);
-			}
-		}
-		else {
-			newChainId = await this.createChain(newIds, value);
-		}
-		return newChainId;
-	}
-
-	async chain(ids: Array<number> = [ 1, 2, 3 ], value: string = ''): Promise<number> {
-		let chainId = await this.getChainId(ids.slice(0, -1), value);
-
-		if (chainId > 0) {
-			return await this.nextChain(chainId, ids, value);
-		}
-		return await this.nextChain(await this.getChainId((ids = [ ...ids.slice(0, -2), ids[ids.length - 1] ]), value, true), ids, value);
-	}
-
-	async pass(id: number, value: string = ''): Promise<number> {
-		const neuronItems = (await this.chainItemRepository.find({ 
+	async pass(nowNeuronId: number, value: string = ''): Promise<any> {
+		const chainTrue = await this.chainRepository.findOne({
 			relations: {
-				chain: true,
+				data: true,
 			},
 			where: {
-				chainId: id,
-			}, 
-			order: {
-				order: 'ASC',
+				parentId: nowNeuronId,
+				isTrue: true,
+				data: {
+					value,
+				},
 			},
-		})) || [];
-		const nowIds = [ 
-			...(neuronItems || []).map(({ neuronId }) => Number(neuronId)), 
-			(((neuronItems || [])[0] || {})['chain'] || {})['neuronId'], 
-		];
-		
-		return await this.chain(nowIds, value);
+		});
+
+		if (chainTrue) {
+			return {
+				neuronId: chainTrue['neuronId'],
+				value: chainTrue['data']['value'],
+			};
+		}
+		const chainTrueWithValue = await this.chainRepository.findOne({
+			relations: {
+				data: true,
+			},
+			where: {
+				parentId: nowNeuronId,
+				isTrue: false,
+				data: {
+					value,
+				},
+			},
+		});
+
+		if (chainTrueWithValue) {
+			return {
+				neuronId: chainTrueWithValue['neuronId'],
+				value,
+			};
+		}
+		const chainFalseItems = await this.chainRepository.find({
+			relations: {
+				data: true,
+				parent: true,
+			},
+			where: {
+				parentId: nowNeuronId,
+				isTrue: false,
+			},
+			order: {
+				id: 'ASC',
+			},
+		});
+		const chainFalse = chainFalseItems[chainFalseItems.length - 1];
+
+		if (!chainFalse['parent']['isFortified'] && nowNeuronId !== 1) {
+			// const dataId = ((await this.dataRepository.findOne({
+			// 	where: {
+			// 		value,
+			// 	},
+			// })) || {})['id'] ?? (await this.dataRepository.save({ value }))['id'];
+			// const points = (await this.getFreePoints(nowNeuronId))[0];
+			// const newNeuronId = (await this.repository.save({ x: points['x'], y: points['y'], isFortified: false }))['id'];
+
+			// console.log('cha1inF1alse1', chainFalse, [{
+			// 	parentId: nowNeuronId,
+			// 	neuronId: chainFalse['neuronId'],
+			// 	isTrue: true,
+			// 	dataId,
+			// }, {
+			// 	parentId: nowNeuronId,
+			// 	neuronId: newNeuronId,
+			// 	isTrue: false,
+			// 	dataId,
+			// }, {
+			// 	parentId: newNeuronId,
+			// 	neuronId: chainFalse['neuronId'],
+			// 	isTrue: true,
+			// 	dataId,
+			// }, {
+			// 	parentId: newNeuronId,
+			// 	neuronId: nowNeuronId,
+			// 	isTrue: false,
+			// 	dataId,
+			// }, {
+			// 	parentId: chainFalse['neuronId'],
+			// 	neuronId: nowNeuronId,
+			// 	isTrue: false,
+			// 	dataId,
+			// }, {
+			// 	parentId: chainFalse['neuronId'],
+			// 	neuronId: newNeuronId,
+			// 	isTrue: true,
+			// 	dataId,
+			// }]);
+
+			// await this.chainRepository.save({
+			// 	parentId: nowNeuronId,
+			// 	neuronId: chainFalse['neuronId'],
+			// 	isTrue: true,
+			// 	dataId,
+			// });
+			// await this.chainRepository.save({
+			// 	parentId: nowNeuronId,
+			// 	neuronId: newNeuronId,
+			// 	isTrue: false,
+			// 	dataId,
+			// });
+			// await this.chainRepository.save({
+			// 	parentId: newNeuronId,
+			// 	neuronId: chainFalse['neuronId'],
+			// 	isTrue: true,
+			// 	dataId,
+			// });
+			// await this.chainRepository.save({
+			// 	parentId: newNeuronId,
+			// 	neuronId: nowNeuronId,
+			// 	isTrue: false,
+			// 	dataId,
+			// });
+			// await this.chainRepository.save({
+			// 	parentId: chainFalse['neuronId'],
+			// 	neuronId: newNeuronId,
+			// 	isTrue: true,
+			// 	dataId,
+			// });
+			// await this.chainRepository.save({
+			// 	parentId: chainFalse['neuronId'],
+			// 	neuronId: nowNeuronId,
+			// 	isTrue: false,
+			// 	dataId,
+			// });
+			// await this.repository.save({ id: chainFalse['parentId'], isFortified: true });
+
+			// return {
+			// 	neuronId: newNeuronId,
+			// 	value,
+			// };
+		}
+		return {
+			neuronId: chainFalse['neuronId'],
+			value,
+		};
 	}
 
 	async start(payload) {

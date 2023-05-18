@@ -7,12 +7,20 @@ import {
 } from 'typeorm';
 import { Neuron } from '../neuron/neuron.entity';
 import { Data } from '../data/data.entity';
-import { ChainItem } from '../chain-item/chain-item.entity';
 
 @Entity()
 export class Chain {
 	@PrimaryGeneratedColumn()
 	public id: number;
+
+	@Column()
+	public parentId: number;
+
+	@ManyToOne(() => Neuron, (parent) => parent.chains, {
+		onDelete: 'CASCADE',
+		onUpdate: 'CASCADE',
+	})
+	public parent: Neuron;
 
 	@Column()
 	public neuronId: number;
@@ -26,17 +34,12 @@ export class Chain {
 	@Column()
 	public dataId: number;
 
+	@Column('bool')
+	isTrue: boolean;
+
 	@ManyToOne(() => Data, (data) => data.chains, {
 		onDelete: 'CASCADE',
 		onUpdate: 'CASCADE',
 	})
 	public data: Data;
-
-	@Column({ default: '' })
-	public name: string;
-
-	@OneToMany(() => ChainItem, (chainItem) => chainItem.chain, {
-		cascade: true,
-	})
-	public chainItems: ChainItem[];
 }

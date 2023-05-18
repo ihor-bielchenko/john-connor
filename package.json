@@ -21,7 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "nest start --entryFile src/seed/main",
     "queue": "nest start --entryFile src/queue/main",
-    "listen": "nest start --entryFile cli/main --watch"
+    "watch": "nest start --entryFile cli/main --watch"
   },
   "dependencies": {
     "@liaoliaots/nestjs-redis": "^9.0.2",

@@ -10,7 +10,6 @@ import {
 import { NeuronService } from 'src/api/neuron/neuron.service';
 import { Neuron } from 'src/api/neuron/neuron.entity';
 import { Chain } from 'src/api/chain/chain.entity';
-import { ChainItem } from 'src/api/chain-item/chain-item.entity';
 import { Data } from 'src/api/data/data.entity';
 
 @Module({
@@ -19,7 +18,6 @@ import { Data } from 'src/api/data/data.entity';
 		TypeOrmModule.forFeature([ 
 			Neuron,
 			Chain,
-			ChainItem,
 			Data, 
 		]),
 		RedisModule.forRoot({

@@ -12,7 +12,6 @@ import { NeuronService } from './neuron.service';
 import { NeuronHttpController } from './neuron-http.controller';
 import { Neuron } from './neuron.entity';
 import { Chain } from '../chain/chain.entity';
-import { ChainItem } from '../chain-item/chain-item.entity';
 import { Data } from '../data/data.entity';
 
 @Module({
@@ -21,7 +20,6 @@ import { Data } from '../data/data.entity';
 		TypeOrmModule.forFeature([ 
 			Neuron,
 			Chain,
-			ChainItem,
 			Data, 
 		]),
 		CacheModule,
