@@ -100,7 +100,7 @@ export class NeuronService extends SqlService {
 		return output.filter((pointItem) => !neuronItems.find((neuronItem) => neuronItem['x'] === pointItem['x'] && neuronItem['y'] === pointItem['y']));
 	}
 
-	async getNextNeuron(nowNeuronId: number, neuronId: number, value: string = ''): Promise<any> {
+	async getNextNeuron(nowNeuronId: number, stateId: number, value: string = ''): Promise<any> {
 		const chainTrue = await this.chainRepository.findOne({
 			relations: {
 				data: true,
