@@ -53,18 +53,8 @@ export class NeuronTcpController extends TcpController {
 		return await super.update(payload);
 	}
 
-	@EventPattern('neuron.start')
-	async start(payload: object = {}) {
-		return await this.start(payload);
-	}
-
-	@EventPattern('neuron.stop')
-	async stop(payload: object = {}) {
-		return await this.stop(payload);
-	}
-
-	@EventPattern('neuron.not')
-	async not(payload: object = {}) {
-		return await this.not(payload);
+	@EventPattern('neuron.step')
+	async step(payload: object = {}) {
+		return await this.step(payload['stateId'], payload['value']);
 	}
 }

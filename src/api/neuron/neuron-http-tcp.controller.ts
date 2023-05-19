@@ -16,28 +16,4 @@ export class NeuronHttpTcpController extends HttpTcpController {
 	) {
 		super();
 	}
-
-	@Get('start/:id')
-	async start(@Param('id') id: number) {
-		return await this.serviceHandlerWrapper(async () => await this.transport.send({
-			name: this.serviceName, 
-			cmd: `${this.entityName}.start`,
-		}, { id }));
-	}
-
-	@Get('stop/:id')
-	async stop(@Param('id') id: number) {
-		return await this.serviceHandlerWrapper(async () => await this.transport.send({
-			name: this.serviceName, 
-			cmd: `${this.entityName}.stop`,
-		}, { id }));
-	}
-
-	@Get('not')
-	async not() {
-		return await this.serviceHandlerWrapper(async () => await this.transport.send({
-			name: this.serviceName, 
-			cmd: `${this.entityName}.not`,
-		}, {}));
-	}
 }

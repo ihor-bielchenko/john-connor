@@ -19,3 +19,5 @@ WHERE
         (`chain_item`.`neuronId` = 2 AND `chain_item`.`order` = 1))
 GROUP BY `chainItemNeuronId`
 ORDER BY `chainItemNeuronId`;
+
+SELECT `id`, `userId`, `fieldId`, `contentId`, `value`, `createdAt`, `updatedAt`, COUNT(`value`) as `length` FROM `field_content` WHERE `fieldId` = "happ-forms-field-skill-name" GROUP BY `value` HAVING `length` = 1 ORDER BY `createdAt` DESC LIMIT 1,3;

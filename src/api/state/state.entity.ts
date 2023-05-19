@@ -6,27 +6,21 @@ import {
 	OneToMany,
 } from 'typeorm';
 import { Neuron } from '../neuron/neuron.entity';
+import { Chain } from '../chain/chain.entity';
 import { Data } from '../data/data.entity';
-import { State } from '../state/state.entity';
 
 @Entity()
-export class Chain {
+export class State {
 	@PrimaryGeneratedColumn()
 	public id: number;
 
 	@Column()
 	public parentId: number;
 
-	@ManyToOne(() => Neuron, (parent) => parent.chains, {
-		onDelete: 'CASCADE',
-		onUpdate: 'CASCADE',
-	})
-	public parent: Neuron;
-
 	@Column()
 	public neuronId: number;
 
-	@ManyToOne(() => Neuron, (neuron) => neuron.chains, {
+	@ManyToOne(() => Neuron, (neuron) => neuron.states, {
 		onDelete: 'CASCADE',
 		onUpdate: 'CASCADE',
 	})
@@ -35,21 +29,14 @@ export class Chain {
 	@Column()
 	public dataId: number;
 
-	@ManyToOne(() => Data, (data) => data.chains, {
+	@ManyToOne(() => Data, (data) => data.states, {
 		onDelete: 'CASCADE',
 		onUpdate: 'CASCADE',
 	})
 	public data: Data;
 
-	@Column()
-	public stateId: number;
-
-	@ManyToOne(() => State, (state) => state.chains, {
-		onDelete: 'CASCADE',
-		onUpdate: 'CASCADE',
+	@OneToMany(() => Chain, (chain) => chain.state, {
+		cascade: true,
 	})
-	public state: State;
-
-	@Column('bool')
-	isTrue: boolean;
+	public chains: Chain[];
 }
