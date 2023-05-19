@@ -318,8 +318,8 @@ export class NeuronService extends SqlService {
 
 		this.clearChain();
 
+		const executeChain = this.pass(2, nextStateId, value);
 		const newValue = _value = await this.execute(value);
-		const executeChain = this.pass(2, nextStateId, newValue);
 		const stateExecuteItems = await this.stateItemsRepository.find({
 			relations: {
 				state: {
