@@ -6,12 +6,8 @@ import {
 import { MethodNotAllowedException } from '@nest-datum-common/exceptions';
 import { TcpController } from '@nest-datum-common/controllers-v2.2.0';
 import { 
-	exists as utilsCheckExists,
-	strId as utilsCheckStrId,
-	strDescription as utilsCheckStrDescription,
-	strFilled as utilsCheckStrFilled,
-	strEmail as utilsCheckStrEmail,
 	str as utilsCheckStr,
+	numericInt as utilsCheckNumericInt,
 } from '@nest-datum-utils/check';
 import { NeuronService } from './neuron.service';
 
@@ -21,6 +17,19 @@ export class NeuronTcpController extends TcpController {
 		protected service: NeuronService,
 	) {
 		super();
+	}
+
+	async validateStep(options: object = {}) {
+		if (!utilsCheckNumericInt(options['id'])) {
+			throw new MethodNotAllowedException(`Property "id" is not valid.`);
+		}
+		if (!utilsCheckStr(options['value'])) {
+			throw new MethodNotAllowedException(`Property "value" is not valid.`);
+		}		
+		return {
+			id: Number(options['id']),
+			value: String(options['value'] ?? ''),
+		};
 	}
 
 	@MessagePattern({ cmd: 'neuron.many' })
@@ -55,6 +64,8 @@ export class NeuronTcpController extends TcpController {
 
 	@EventPattern('neuron.step')
 	async step(payload: object = {}) {
-		return await this.step(payload['stateId'], payload['value']);
+		const { id, value } = await this.validateStep(payload);
+
+		return await this.service.step(id, value);
 	}
 }

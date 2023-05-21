@@ -5,8 +5,7 @@ import {
 	Index,
 	OneToMany,
 } from 'typeorm';
-import { Chain } from '../chain/chain.entity';
-import { State } from '../state/state.entity';
+import { StateItem } from '../state-item/state-item.entity';
 
 @Entity()
 export class Data {
@@ -17,13 +16,8 @@ export class Data {
 	@Index({ unique: true })
 	public value: string;
 
-	@OneToMany(() => Chain, (chain) => chain.data, {
+	@OneToMany(() => StateItem, (stateItem) => stateItem.data, {
 		cascade: true,
 	})
-	public chains: Chain[];
-
-	@OneToMany(() => State, (state) => state.data, {
-		cascade: true,
-	})
-	public states: State[];
+	public stateItems: StateItem[];
 }

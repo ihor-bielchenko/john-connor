@@ -6,8 +6,8 @@ import {
 	OneToMany,
 } from 'typeorm';
 import { Neuron } from '../neuron/neuron.entity';
-import { Data } from '../data/data.entity';
 import { State } from '../state/state.entity';
+import { StateItem } from '../state-item/state-item.entity';
 
 @Entity()
 export class Chain {
@@ -33,15 +33,6 @@ export class Chain {
 	public neuron: Neuron;
 
 	@Column()
-	public dataId: number;
-
-	@ManyToOne(() => Data, (data) => data.chains, {
-		onDelete: 'CASCADE',
-		onUpdate: 'CASCADE',
-	})
-	public data: Data;
-
-	@Column()
 	public stateId: number;
 
 	@ManyToOne(() => State, (state) => state.chains, {
@@ -52,4 +43,9 @@ export class Chain {
 
 	@Column('bool')
 	isTrue: boolean;
+
+	@OneToMany(() => StateItem, (stateItem) => stateItem.chain, {
+		cascade: true,
+	})
+	public stateItems: StateItem[];
 }
