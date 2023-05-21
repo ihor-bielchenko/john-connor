@@ -20,9 +20,6 @@ export class Neuron {
 	@Column({ default: 0 })
 	public y: number;
 
-	@Column('bool')
-	isFortified: boolean;
-
 	@OneToMany(() => Chain, (chain) => chain.neuron, {
 		cascade: true,
 	})

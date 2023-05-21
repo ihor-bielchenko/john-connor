@@ -1,7 +1,6 @@
 import { 
 	Controller,
 	Get,
-	Param,
 	Query,
 	MethodNotAllowedException,
 } from '@nestjs/common';
@@ -34,9 +33,9 @@ export class NeuronHttpController extends HttpController {
 		};
 	}
 
-	@Get('step/:id')
+	@Get('step')
 	async step(
-		@Param('id') id: number,
+		@Query('id') id: number,
 		@Query('value') value: string,
 	) {
 		return await this.serviceHandlerWrapper(async () => {

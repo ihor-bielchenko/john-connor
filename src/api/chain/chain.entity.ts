@@ -7,7 +7,6 @@ import {
 } from 'typeorm';
 import { Neuron } from '../neuron/neuron.entity';
 import { State } from '../state/state.entity';
-import { StateItem } from '../state-item/state-item.entity';
 
 @Entity()
 export class Chain {
@@ -44,8 +43,6 @@ export class Chain {
 	@Column('bool')
 	isTrue: boolean;
 
-	@OneToMany(() => StateItem, (stateItem) => stateItem.chain, {
-		cascade: true,
-	})
-	public stateItems: StateItem[];
+	@Column('bool')
+	isFortified: boolean;
 }

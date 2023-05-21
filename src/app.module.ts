@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 import { sqlConfig as utilsFormatSqlConfig } from '@nest-datum-utils/format';
 import { NeuronHttpModule } from './api/neuron/neuron-http.module';
+import { ChainHttpModule } from './api/chain/chain-http.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -37,6 +38,7 @@ import { AppController } from './app.controller';
 			}],
 		}),
 		NeuronHttpModule,
+		ChainHttpModule,
 	],
 	controllers: [ AppController ],
 	providers: [],
