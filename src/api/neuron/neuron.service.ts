@@ -245,7 +245,29 @@ export class NeuronService extends SqlService {
 		}
 		let chainFalse = (chainFalseItems || [])[(chainFalseItems || []).length - 1];
 
-		if (chainFalse && nowNeuronId !== 1 && nowNeuronId !== 2) {
+		if (!chainFalse) {
+			chainFalse = (await this.chainRepository.findOne({
+				relations: {
+					data: true,
+				},
+				where: {
+					parentId: nowNeuronId,
+					isTrue: false,
+					data: {
+						value,
+					},
+				},
+			})) ?? (chainFalse = await this.chainRepository.findOne({
+				where: {
+					parentId: nowNeuronId,
+					isTrue: false,
+				},
+			}));
+		}
+		if (chainFalse
+			&& chainFalse['isFortified'] === false 
+			&& nowNeuronId !== 1 
+			&& nowNeuronId !== 2) {
 			const dataId = await this.getDataIdByValue(value);
 			const newStateId = await this.createState(this.currentChain(), nowStateId);
 			const points = (await this.getFreePoints(nowNeuronId))[0];
@@ -308,25 +330,6 @@ export class NeuronService extends SqlService {
 				value,
 			};
 		}
-		chainFalse = (await this.chainRepository.findOne({
-			relations: {
-				data: true,
-			},
-			where: {
-				parentId: nowNeuronId,
-				isTrue: false,
-				isFortified: false,
-				data: {
-					value,
-				},
-			},
-		})) || (await this.chainRepository.findOne({
-			where: {
-				parentId: nowNeuronId,
-				isTrue: false,
-			},
-		}));
-
 		return {
 			chainId: chainFalse['id'],
 			neuronId: chainFalse['neuronId'],
@@ -363,62 +366,58 @@ export class NeuronService extends SqlService {
 
 	async step(nowStateId: number, value: string = ''): Promise<any> {
 		const readChain = await this.pass(1, nowStateId, value);
-		const chainReadItem = await this.stateItemRepository.find({
-			relations: {
-				state: {
-					chains: {
-						data: true,
-					},
-				},
-			},
-			where: readChain.map((neuronId, order) => ({
-				stateId: Not(nowStateId),
-				neuronId,
-				order,
-				state: {
-					chains: {
-						data: {
-							value,
-						},
-					},
-				},
-			})),
-			order: {
-				order: 'ASC',
-			},
-		});
-		const nextStateId = (chainReadItem.length === readChain.length)
-			? chainReadItem[0]['stateId']
-			: await this.createState(readChain);
-
-		// console.log('readChain', readChain);
-		// console.log('nextStateId', nextStateId);
-		// console.log('chainReadItem', chainReadItem);
 
 		this.clearChain();
 
-		const executeChain = await this.pass(2, nextStateId, value);
+		const executeChain = await this.pass(2, nowStateId, value);
+		const chainExecuteItemsClear = [];
+		const chainExecuteItems = (await this.connection.query(`
+			SELECT 
+				\`state_item\`.\`id\` AS \`stateItemId\`,
+				\`state_item\`.\`stateId\` AS \`stateItemStateId\`,
+				\`state_item\`.\`neuronId\` AS \`stateItemNeuronId\`,
+				\`state_item\`.\`order\` AS \`stateItemOrder\`,
+				\`chain\`.\`id\` AS \`chainId\`,
+				\`chain\`.\`parentId\` AS \`chainParentId\`,
+				\`chain\`.\`neuronId\` AS \`chainNeuronId\`,
+				\`chain\`.\`stateId\` AS \`chainStateId\`,
+				\`chain\`.\`dataId\` AS \`chainDataId\`,
+				\`chain\`.\`isTrue\` AS \`chainIsTrue\`,
+				\`chain\`.\`isFortified\` AS \`chainIsFortified\`,
+				\`data\`.\`id\` AS \`dataId\`,
+				\`data\`.\`value\` AS \`dataValue\`
+			FROM \`state_item\`
+			LEFT JOIN \`chain\`
+			ON \`state_item\`.\`stateId\` = \`chain\`.\`stateId\`
+			LEFT JOIN \`data\`
+			ON \`chain\`.\`dataId\` = \`data\`.\`id\`
+			WHERE 
+				\`state_item\`.\`stateId\` != ${nowStateId}
+				AND
+				\`state_item\`.\`neuronId\` IN (${executeChain.join(',')})
+				AND
+				\`state_item\`.\`order\` IN (${executeChain.map((item, index) => index).join(',')})
+			GROUP BY 
+				\`state_item\`.\`order\`, 
+				\`state_item\`.\`neuronId\`
+			ORDER BY 
+				\`state_item\`.\`order\` ASC,
+				\`state_item\`.\`neuronId\` ASC;
+		`)).filter((item) => {
+			let flag = true;
 
-		// console.log('executeChain', executeChain);
-
-		const newValue = _prevResult = await this.execute(value);
-		const chainExecuteItems = await this.stateItemRepository.find({
-			relations: {
-				state: {
-					chains: {
-						data: true,
-					},
-				},
-			},
-			where: executeChain.map((neuronId, order) => ({
-				stateId: nextStateId,
-				neuronId,
-				order,
-			})),
-			order: {
-				order: 'ASC',
-			},
+			if (chainExecuteItemsClear.includes(item.stateItemNeuronId)) {
+				flag = false;
+			}
+			else {
+				chainExecuteItemsClear.push(item.stateItemNeuronId);
+			}
+			return flag;
 		});
+		const isExists = ((executeChain.filter((id, index) => id !== chainExecuteItemsClear[index])).length === 0);
+		const nextStateId = isExists
+			? chainExecuteItems[0]['stateItemStateId']
+			: await this.createState(executeChain);
 
 		this.clearChain();
 
@@ -426,10 +425,9 @@ export class NeuronService extends SqlService {
 			readChain,
 			executeChain,
 			stateId: nextStateId,
-			value: (chainExecuteItems.length === executeChain.length
-				&& chainExecuteItems[0]['state']['chains'].length > 0)
-				? chainExecuteItems[0]['state']['chains'][0]['data']['value']
-				: newValue,
+			value: isExists
+				? chainExecuteItems[0]['dataValue']
+				: (_prevResult = await this.execute(value)),
 		};
 		return {};
 	}

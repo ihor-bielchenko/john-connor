@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: May 22, 2023 at 02:30 AM
+-- Generation Time: May 22, 2023 at 06:58 AM
 -- Server version: 8.0.33-0ubuntu0.22.04.1
 -- PHP Version: 8.1.2-1ubuntu2.11
 
@@ -47,19 +47,7 @@ INSERT INTO `chain` (`id`, `parentId`, `neuronId`, `stateId`, `dataId`, `isTrue`
 (3, 3, 2, 2, 1, 1, 1),
 (4, 3, 1, 2, 1, 0, 1),
 (5, 2, 1, 3, 1, 1, 1),
-(6, 2, 3, 3, 1, 0, 1),
-(7, 3, 1, 1, 2, 1, 1),
-(8, 3, 4, 1, 2, 0, 0),
-(9, 4, 1, 1, 2, 1, 1),
-(10, 4, 3, 1, 2, 0, 0),
-(11, 1, 4, 1, 2, 1, 1),
-(12, 1, 3, 1, 2, 0, 1),
-(13, 2, 3, 4, 2, 1, 1),
-(14, 2, 5, 4, 2, 0, 0),
-(15, 5, 3, 4, 2, 1, 1),
-(16, 5, 2, 4, 2, 0, 0),
-(17, 3, 5, 4, 2, 1, 1),
-(18, 3, 2, 4, 2, 0, 1);
+(6, 2, 3, 3, 1, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -78,7 +66,7 @@ CREATE TABLE `data` (
 
 INSERT INTO `data` (`id`, `value`) VALUES
 (1, ''),
-(2, 'PWD');
+(2, 'pwd');
 
 -- --------------------------------------------------------
 
@@ -100,9 +88,7 @@ CREATE TABLE `neuron` (
 INSERT INTO `neuron` (`id`, `name`, `x`, `y`) VALUES
 (1, 'Мотивация', 0, -100),
 (2, 'Пустое значение', 0, -160),
-(3, 'Не пустое значение', -30, -130),
-(4, 'Подготовить команду PWD', 30, -130),
-(5, 'Выполнить команду PWD', 60, -160);
+(3, 'Не пустое значение', -30, -130);
 
 -- --------------------------------------------------------
 
@@ -121,8 +107,7 @@ CREATE TABLE `state` (
 INSERT INTO `state` (`id`) VALUES
 (1),
 (2),
-(3),
-(4);
+(3);
 
 -- --------------------------------------------------------
 
@@ -153,9 +138,7 @@ INSERT INTO `state_item` (`id`, `stateId`, `neuronId`, `order`) VALUES
 (9, 3, 2, 0),
 (10, 3, 3, 1),
 (11, 3, 2, 0),
-(12, 3, 1, 1),
-(13, 4, 4, 0),
-(14, 4, 1, 1);
+(12, 3, 1, 1);
 
 --
 -- Indexes for dumped tables
@@ -206,7 +189,7 @@ ALTER TABLE `state_item`
 -- AUTO_INCREMENT for table `chain`
 --
 ALTER TABLE `chain`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=79;
 
 --
 -- AUTO_INCREMENT for table `data`
@@ -218,19 +201,19 @@ ALTER TABLE `data`
 -- AUTO_INCREMENT for table `neuron`
 --
 ALTER TABLE `neuron`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `state`
 --
 ALTER TABLE `state`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `state_item`
 --
 ALTER TABLE `state_item`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- Constraints for dumped tables
