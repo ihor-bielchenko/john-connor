@@ -11,6 +11,7 @@ import { NeuronService } from 'src/api/neuron/neuron.service';
 import { Neuron } from 'src/api/neuron/neuron.entity';
 import { Chain } from 'src/api/chain/chain.entity';
 import { State } from 'src/api/state/state.entity';
+import { StateItem } from 'src/api/state-item/state-item.entity';
 import { Data } from 'src/api/data/data.entity';
 
 @Module({
@@ -20,6 +21,7 @@ import { Data } from 'src/api/data/data.entity';
 			Neuron,
 			Chain,
 			State,
+			StateItem,
 			Data, 
 		]),
 		RedisModule.forRoot({

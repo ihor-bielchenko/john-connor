@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import { Neuron } from '../neuron/neuron.entity';
 import { State } from '../state/state.entity';
+import { Data } from '../data/data.entity';
 
 @Entity()
 export class Chain {
@@ -39,6 +40,15 @@ export class Chain {
 		onUpdate: 'CASCADE',
 	})
 	public state: State;
+
+	@Column()
+	public dataId: number;
+
+	@ManyToOne(() => Data, (data) => data.chains, {
+		onDelete: 'CASCADE',
+		onUpdate: 'CASCADE',
+	})
+	public data: Data;
 
 	@Column('bool')
 	isTrue: boolean;
