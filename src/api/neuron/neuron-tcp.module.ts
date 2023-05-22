@@ -9,6 +9,7 @@ import { NeuronTcpController } from './neuron-tcp.controller';
 import { Neuron } from './neuron.entity';
 import { Chain } from '../chain/chain.entity';
 import { State } from '../state/state.entity';
+import { StateItem } from '../state-item/state-item.entity';
 import { Data } from '../data/data.entity';
 
 @Module({
@@ -18,6 +19,7 @@ import { Data } from '../data/data.entity';
 			Neuron,
 			Chain,
 			State,
+			StateItem,
 			Data, 
 		]),
 		CacheModule,
