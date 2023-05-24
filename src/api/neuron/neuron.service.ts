@@ -25,6 +25,7 @@ export class NeuronService extends SqlService {
 	protected readonly withEnvKey: boolean = false;
 	protected readonly repositoryConstructor = Neuron;
 	private chain: Array<number> = [];
+	private newChain: Array<number> = [];
 
 	constructor(
 		@InjectRepository(Neuron) protected readonly repository: Repository<Neuron>,
@@ -62,16 +63,28 @@ export class NeuronService extends SqlService {
 		});
 	}
 
-	currentChain(): Array<number> {
+	getCurrentChain(): Array<number> {
 		return this.chain;
 	}
 
-	pushChain(chainId: number): number {
+	pushCurrentChain(chainId: number): number {
 		return this.chain.push(chainId);
 	}
 
-	clearChain(): any {
+	clearCurrentChain(): any {
 		return (this.chain = []);
+	}
+
+	getNewChain(): Array<number> {
+		return this.newChain;
+	}
+
+	pushNewChain(chainId: number): number {
+		return this.newChain.push(chainId);
+	}
+
+	clearNewChain(): any {
+		return (this.newChain = []);
 	}
 
 	async getFreePoints(id: number): Promise<Array<number>> {
@@ -151,21 +164,28 @@ export class NeuronService extends SqlService {
 	}
 
 	async createState(chain: Array<number>, defaultStateId: number = 0): Promise<number> {
-		const stateId = (defaultStateId > 0)
-			? (((await this.stateRepository.findOne({ where: { id: defaultStateId } })) || {})['id']
-				|| (await this.stateRepository.save({ id: null }))['id'])
-			: (await this.stateRepository.save({ id: null }))['id'];
-		let i = 0;
+		const value = chain.join('-');
 
-		while (i < chain.length) {
-			await this.stateItemRepository.save({
-				stateId,
-				neuronId: chain[i],
-				order: i,
-			});
-			i++;
-		}
-		return stateId;
+		return (defaultStateId > 0)
+			? (((await this.stateRepository.findOne({ 
+				relations: {
+					stateItems: true,
+				},
+				where: { 
+					id: defaultStateId,
+					stateItems: {
+						value,
+					},
+				}, 
+			})) || {})['id']
+				|| (await this.stateItemRepository.save({ 
+					value,
+					stateId: (await this.stateRepository.save({ id: null }))['id']
+				}))['stateId'])
+			: (await this.stateItemRepository.save({ 
+				value,
+				stateId: (await this.stateRepository.save({ id: null }))['id']
+			}))['stateId'];
 	}
 
 	async getNextNeuron(nowNeuronId: number, nowStateId: number, value: string = ''): Promise<any> {
@@ -183,6 +203,13 @@ export class NeuronService extends SqlService {
 			},
 		});
 
+		console.log('0000', {
+			nowNeuronId,
+			nowStateId,
+			value,
+		});
+		console.log('1111', chainTrue);
+
 		if (chainTrue) {
 			return {
 				chainId: chainTrue['id'],
@@ -191,7 +218,7 @@ export class NeuronService extends SqlService {
 				value,
 			};
 		}
-		const chainFalseWithState = await this.chainRepository.findOne({
+		let chainFalse = await this.chainRepository.findOne({
 			relations: {
 				data: true,
 			},
@@ -205,11 +232,13 @@ export class NeuronService extends SqlService {
 			},
 		});
 
-		if (chainFalseWithState) {
+		console.log('2222', chainFalse);
+
+		if (chainFalse) {
 			return {
-				chainId: chainFalseWithState['id'],
-				neuronId: chainFalseWithState['neuronId'],
-				stateId: chainFalseWithState['stateId'],
+				chainId: chainFalse['id'],
+				stateId: chainFalse['stateId'],
+				neuronId: chainFalse['neuronId'],
 				value,
 			};
 		}
@@ -224,6 +253,8 @@ export class NeuronService extends SqlService {
 				id: 'DESC',
 			},
 		});
+
+		console.log('3333', chainFalseItems);
 
 		if (chainFalseItems.length === 0) {
 			chainFalseItems = await this.chainRepository.find({
@@ -243,111 +274,160 @@ export class NeuronService extends SqlService {
 				},
 			});
 		}
-		let chainFalse = (chainFalseItems || [])[(chainFalseItems || []).length - 1];
+		chainFalse = (chainFalseItems || [])[(chainFalseItems || []).length - 1];
+
+		console.log('4444', chainFalse);
 
 		if (!chainFalse) {
-			chainFalse = (await this.chainRepository.findOne({
+			chainFalse = await this.chainRepository.findOne({
 				relations: {
 					data: true,
 				},
 				where: {
 					parentId: nowNeuronId,
+					isFortified: true,
 					isTrue: false,
 					data: {
 						value,
 					},
 				},
-			})) ?? (chainFalse = await this.chainRepository.findOne({
-				where: {
-					parentId: nowNeuronId,
-					isTrue: false,
-				},
-			}));
+			});
 		}
-		if (chainFalse
-			&& chainFalse['isFortified'] === false 
+		const chainFalseClear = await this.chainRepository.findOne({
+			where: {
+				parentId: nowNeuronId,
+				isTrue: false,
+			},
+		});
+
+		console.log('5555', chainFalse);
+
+		if (!chainFalse
+			&& chainFalseClear['isFortified'] === false
 			&& nowNeuronId !== 1 
 			&& nowNeuronId !== 2) {
 			const dataId = await this.getDataIdByValue(value);
-			const newStateId = await this.createState(this.currentChain(), nowStateId);
 			const points = (await this.getFreePoints(nowNeuronId))[0];
 			const newNeuronId = (await this.repository.save({ x: points['x'], y: points['y'] }))['id'];
 
-			await this.chainRepository.save({
-				stateId: newStateId,
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
 				parentId: nowNeuronId,
-				neuronId: chainFalse['neuronId'],
+				neuronId: chainFalseClear['neuronId'],
 				dataId,
 				isTrue: true,
 				isFortified: true,
-			});
-			await this.chainRepository.save({
-				stateId: newStateId,
+			}))['id']);
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
 				parentId: nowNeuronId,
 				neuronId: newNeuronId,
 				dataId,
-				isTrue: false,
+				isTrue: true,
 				isFortified: false,
-			});
-			await this.chainRepository.save({
-				stateId: newStateId,
+			}))['id']);
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
 				parentId: newNeuronId,
-				neuronId: chainFalse['neuronId'],
+				neuronId: chainFalseClear['neuronId'],
 				dataId,
 				isTrue: true,
 				isFortified: true,
-			});
-			await this.chainRepository.save({
-				stateId: newStateId,
+			}))['id']);
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
 				parentId: newNeuronId,
 				neuronId: nowNeuronId,
 				dataId,
 				isTrue: false,
 				isFortified: false,
-			});
-			await this.chainRepository.save({
-				stateId: newStateId,
-				parentId: chainFalse['neuronId'],
-				neuronId: newNeuronId,
-				dataId,
-				isTrue: true,
-				isFortified: true,
-			});
-			await this.chainRepository.save({
-				stateId: newStateId,
-				parentId: chainFalse['neuronId'],
-				neuronId: nowNeuronId,
-				dataId,
-				isTrue: false,
-				isFortified: true,
-			});
-			await this.chainRepository.save({ id: chainFalse['id'], isFortified: true });
+			}))['id']);
+			await this.chainRepository.save({ id: chainFalseClear['id'], isFortified: true });
 
 			return {
-				chainId: chainFalse['id'],
-				neuronId: nowNeuronId,
-				stateId: newStateId,
+				chainId: chainFalseClear['id'],
+				neuronId: chainFalseClear['neuronId'],
+				stateId: nowStateId,
 				value,
+				isReturn: true,
+			};
+		}
+		const currentChain = this.getCurrentChain();
+
+		console.log('6666', chainFalse);
+		console.log('7777', chainFalseClear);
+		console.log('8888', this.getCurrentChain().includes(chainFalseClear['neuronId']));
+
+		if (currentChain.includes(chainFalseClear['neuronId'])) {
+			const dataId = await this.getDataIdByValue(value);
+			const points = (await this.getFreePoints(nowNeuronId))[0];
+			const newNeuronId = (await this.repository.save({ x: points['x'], y: points['y'] }))['id'];
+
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
+				parentId: nowNeuronId,
+				neuronId: newNeuronId,
+				dataId,
+				isTrue: true,
+				isFortified: true,
+			}))['id']);
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
+				parentId: nowNeuronId,
+				neuronId: currentChain[currentChain.length - 1],
+				dataId,
+				isTrue: false,
+				isFortified: false,
+			}))['id']);
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
+				parentId: newNeuronId,
+				neuronId: nowNeuronId,
+				dataId,
+				isTrue: true,
+				isFortified: true,
+			}))['id']);
+			this.pushNewChain((await this.chainRepository.save({
+				stateId: nowStateId,
+				parentId: newNeuronId,
+				neuronId: chainFalseClear['neuronId'],
+				dataId,
+				isTrue: false,
+				isFortified: false,
+			}))['id']);
+
+			return {
+				chainId: chainFalseClear['id'],
+				neuronId: chainFalseClear['neuronId'],
+				stateId: nowStateId,
+				value,
+				isReturn: true,
 			};
 		}
 		return {
-			chainId: chainFalse['id'],
-			neuronId: chainFalse['neuronId'],
-			stateId: chainFalse['stateId'],
+			chainId: chainFalseClear['id'],
+			neuronId: chainFalseClear['neuronId'],
+			stateId: nowStateId,
 			value,
 		};
 	}
 
 	async pass(neuronId: number, stateId: number, value: string = ''): Promise<Array<number>> {
-		const currentChain = this.currentChain();
+		const currentChain = this.getCurrentChain();
 		const nextNeuron = await this.getNextNeuron(neuronId, stateId, value);
 
-		this.pushChain(neuronId);
+		this.pushCurrentChain(neuronId);
 
+		if (nextNeuron.isReturn) {
+			if (!currentChain.includes(nextNeuron.neuronId)) {
+				this.pushCurrentChain(nextNeuron.neuronId);
+			}
+			return this.getCurrentChain();
+		}
 		if (!currentChain.includes(nextNeuron.neuronId)) {
 			return await this.pass(nextNeuron.neuronId, nextNeuron.stateId, value);
 		}
-		return this.currentChain();
+		return this.getCurrentChain();
 	}
 
 	async execute(value: string = ''): Promise<string> {
@@ -365,69 +445,84 @@ export class NeuronService extends SqlService {
 	}
 
 	async step(nowStateId: number, value: string = ''): Promise<any> {
+		console.log('????????????????????????????????????????????????');
+
 		const readChain = await this.pass(1, nowStateId, value);
-
-		this.clearChain();
-
-		const executeChain = await this.pass(2, nowStateId, value);
-		const chainExecuteItemsClear = [];
-		const chainExecuteItems = (await this.connection.query(`
-			SELECT 
-				\`state_item\`.\`id\` AS \`stateItemId\`,
-				\`state_item\`.\`stateId\` AS \`stateItemStateId\`,
-				\`state_item\`.\`neuronId\` AS \`stateItemNeuronId\`,
-				\`state_item\`.\`order\` AS \`stateItemOrder\`,
-				\`chain\`.\`id\` AS \`chainId\`,
-				\`chain\`.\`parentId\` AS \`chainParentId\`,
-				\`chain\`.\`neuronId\` AS \`chainNeuronId\`,
-				\`chain\`.\`stateId\` AS \`chainStateId\`,
-				\`chain\`.\`dataId\` AS \`chainDataId\`,
-				\`chain\`.\`isTrue\` AS \`chainIsTrue\`,
-				\`chain\`.\`isFortified\` AS \`chainIsFortified\`,
-				\`data\`.\`id\` AS \`dataId\`,
-				\`data\`.\`value\` AS \`dataValue\`
-			FROM \`state_item\`
-			LEFT JOIN \`chain\`
-			ON \`state_item\`.\`stateId\` = \`chain\`.\`stateId\`
-			LEFT JOIN \`data\`
-			ON \`chain\`.\`dataId\` = \`data\`.\`id\`
-			WHERE 
-				\`state_item\`.\`stateId\` != ${nowStateId}
-				AND
-				\`state_item\`.\`neuronId\` IN (${executeChain.join(',')})
-				AND
-				\`state_item\`.\`order\` IN (${executeChain.map((item, index) => index).join(',')})
-			GROUP BY 
-				\`state_item\`.\`order\`, 
-				\`state_item\`.\`neuronId\`
-			ORDER BY 
-				\`state_item\`.\`order\` ASC,
-				\`state_item\`.\`neuronId\` ASC;
-		`)).filter((item) => {
-			let flag = true;
-
-			if (chainExecuteItemsClear.includes(item.stateItemNeuronId)) {
-				flag = false;
-			}
-			else {
-				chainExecuteItemsClear.push(item.stateItemNeuronId);
-			}
-			return flag;
+		const chainReadItem = await this.stateRepository.findOne({
+			relations: {
+				chains: {
+					data: true,
+				},
+				stateItems: true,
+			},
+			where: {
+				stateItems: {
+					value: readChain.join('-'),
+				},
+			},
 		});
-		const isExists = ((executeChain.filter((id, index) => id !== chainExecuteItemsClear[index])).length === 0);
-		const nextStateId = isExists
-			? chainExecuteItems[0]['stateItemStateId']
-			: await this.createState(executeChain);
+		let nextStateId = chainReadItem
+			? chainReadItem['id']
+			: await this.createState(readChain),
+			i = 0;
 
-		this.clearChain();
+		while (i < this.newChain.length) {
+			await this.chainRepository.save({ id: this.newChain[i], stateId: nextStateId });
+			i++;
+		}
+		const newChain = [ ...this.getNewChain() ];
+
+		this.clearNewChain();
+		this.clearCurrentChain();
+
+		const newValue = ((((chainReadItem || {})['chains'] || [])[0] || {})['data'] || {})['value'] ?? value;
+
+		console.log('===================================');
+
+		const executeChain = await this.pass(2, nextStateId, newValue);
+		const chainExecuteItem = await this.stateRepository.findOne({
+			relations: {
+				chains: {
+					data: true,
+				},
+				stateItems: true,
+			},
+			where: {
+				stateItems: {
+					value: executeChain.join('-'),
+				},
+			},
+		});
+
+		if (chainExecuteItem) {
+			nextStateId = chainExecuteItem['id'];
+		}
+		else {
+			nextStateId = await this.createState(executeChain, nextStateId);
+		}
+		i = 0;
+
+		while (i < newChain.length) {
+			const id = newChain[i];
+			const chainModel = { ...(await this.chainRepository.findOne({ where: { id } }) || {}) };
+
+			delete chainModel['id'];
+			await this.chainRepository.save({ ...chainModel, stateId: nextStateId });
+			i++;
+		}
+		this.clearNewChain();
+		this.clearCurrentChain();
 
 		return {
 			readChain,
 			executeChain,
 			stateId: nextStateId,
-			value: isExists
-				? chainExecuteItems[0]['dataValue']
-				: (_prevResult = await this.execute(value)),
+			value: chainExecuteItem
+				? chainExecuteItem
+					.chains[0]
+					.data
+					.value
+				: (_prevResult = await this.execute(newValue)),
 		};
 		return {};
 	}

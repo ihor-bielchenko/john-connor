@@ -6,8 +6,9 @@ import {
 } from '@nest-datum/cache';
 import { ChainService } from './chain.service';
 import { Neuron } from '../neuron/neuron.entity';
-import { State } from '../state/state.entity';
 import { StateItem } from '../state-item/state-item.entity';
+import { State } from '../state/state.entity';
+import { Data } from '../data/data.entity';
 import { ChainTcpController } from './chain-tcp.controller';
 import { Chain } from './chain.entity';
 
@@ -17,8 +18,9 @@ import { Chain } from './chain.entity';
 		TypeOrmModule.forFeature([
 			Chain,
 			Neuron,
-			State,
 			StateItem,
+			State,
+			Data,
 		]),
 		CacheModule,
 	],

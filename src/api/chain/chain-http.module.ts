@@ -11,6 +11,7 @@ import {
 import { Neuron } from '../neuron/neuron.entity';
 import { State } from '../state/state.entity';
 import { StateItem } from '../state-item/state-item.entity';
+import { Data } from '../data/data.entity';
 import { ChainService } from './chain.service';
 import { ChainHttpController } from './chain-http.controller';
 import { Chain } from './chain.entity';
@@ -23,6 +24,7 @@ import { Chain } from './chain.entity';
 			Neuron,
 			State,
 			StateItem,
+			Data,
 		]),
 		CacheModule,
 	],

@@ -3,8 +3,8 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Module } from '@nestjs/common';
 import { sqlConfig as utilsFormatSqlConfig } from '@nest-datum-utils/format';
-import { NeuronTcpModule } from './api/neuron/neuron-tcp.module';
-import { ChainTcpModule } from './api/chain/chain-tcp.module';
+import { NeuronHttpModule } from './api/neuron/neuron-http.module';
+import { ChainHttpModule } from './api/chain/chain-http.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -31,8 +31,8 @@ import { AppController } from './app.controller';
 				db: Number(process.env.REDIS_QUEUE_DB),
 			}],
 		}),
-		NeuronTcpModule,
-		ChainTcpModule,
+		NeuronHttpModule,
+		ChainHttpModule,
 	],
 	controllers: [ AppController ],
 	providers: [],

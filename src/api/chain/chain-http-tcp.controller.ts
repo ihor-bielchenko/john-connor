@@ -15,9 +15,9 @@ import {
 	strId as utilsCheckStrId,
 } from '@nest-datum-utils/check';
 
-@Controller(`${process.env.SERVICE_CV}/chain`)
+@Controller(`${process.env.SERVICE_JOHN_CONNOR}/chain`)
 export class ChainHttpTcpController extends HttpTcpController {
-	protected readonly serviceName: string = process.env.SERVICE_CV;
+	protected readonly serviceName: string = process.env.SERVICE_JOHN_CONNOR;
 	protected readonly entityName: string = 'chain';
 
 	constructor(
