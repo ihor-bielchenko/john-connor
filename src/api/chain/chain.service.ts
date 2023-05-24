@@ -28,10 +28,9 @@ export class ChainService extends SqlService {
 			...super.manyGetColumns(customColumns),
 			parentId: true,
 			neuronId: true,
-			stateId: true,
 			dataId: true,
 			isTrue: true,
-			isFortified: true,
+			isSaved: true,
 		});
 	}
 
@@ -40,10 +39,9 @@ export class ChainService extends SqlService {
 			...super.oneGetColumns(customColumns),
 			parentId: true,
 			neuronId: true,
-			stateId: true,
 			dataId: true,
 			isTrue: true,
-			isFortified: true,
+			isSaved: true,
 		});
 	}
 }

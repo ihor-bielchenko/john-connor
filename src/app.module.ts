@@ -29,6 +29,12 @@ import { AppController } from './app.controller';
 				port: Number(process.env.REDIS_QUEUE_PORT),
 				password: process.env.REDIS_QUEUE_PASSWORD,
 				db: Number(process.env.REDIS_QUEUE_DB),
+			}, {
+				namespace: 'State',
+				host: process.env.REDIS_STATE_HOST,
+				port: Number(process.env.REDIS_STATE_PORT),
+				password: process.env.REDIS_STATE_PASSWORD,
+				db: Number(process.env.REDIS_STATE_DB),
 			}],
 		}),
 		NeuronHttpModule,

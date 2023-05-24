@@ -6,7 +6,6 @@ import {
 	OneToMany,
 } from 'typeorm';
 import { Neuron } from '../neuron/neuron.entity';
-import { State } from '../state/state.entity';
 import { Data } from '../data/data.entity';
 
 @Entity()
@@ -32,27 +31,15 @@ export class Chain {
 	})
 	public neuron: Neuron;
 
-	@Column()
-	public stateId: number;
-
-	@ManyToOne(() => State, (state) => state.chains, {
-		onDelete: 'CASCADE',
-		onUpdate: 'CASCADE',
-	})
-	public state: State;
-
-	@Column()
+	@Column({ default: 0 })
 	public dataId: number;
 
-	@ManyToOne(() => Data, (data) => data.chains, {
-		onDelete: 'CASCADE',
-		onUpdate: 'CASCADE',
-	})
+	@ManyToOne(() => Data, (data) => data.chains)
 	public data: Data;
 
 	@Column('bool')
 	isTrue: boolean;
 
 	@Column('bool')
-	isFortified: boolean;
+	isSaved: boolean;
 }

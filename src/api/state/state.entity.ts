@@ -5,21 +5,25 @@ import {
 	ManyToOne,
 	OneToMany,
 } from 'typeorm';
-import { Chain } from '../chain/chain.entity';
-import { StateItem } from '../state-item/state-item.entity';
+import { Neuron } from '../neuron/neuron.entity';
 
 @Entity()
 export class State {
 	@PrimaryGeneratedColumn()
 	public id: number;
 
-	@OneToMany(() => Chain, (chain) => chain.state, {
-		cascade: true,
-	})
-	public chains: Chain[];
+	@Column()
+	public neuronId: number;
 
-	@OneToMany(() => StateItem, (stateItem) => stateItem.state, {
-		cascade: true,
+	@ManyToOne(() => Neuron, (neuron) => neuron.states, {
+		onDelete: 'CASCADE',
+		onUpdate: 'CASCADE',
 	})
-	public stateItems: StateItem[];
+	public neuron: Neuron;
+
+	@Column()
+	public value: string;
+
+	@Column({ default: 0 })
+	public used: number;
 }

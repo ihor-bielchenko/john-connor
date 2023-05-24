@@ -11,7 +11,6 @@ import { NeuronService } from 'src/api/neuron/neuron.service';
 import { Neuron } from 'src/api/neuron/neuron.entity';
 import { Chain } from 'src/api/chain/chain.entity';
 import { State } from 'src/api/state/state.entity';
-import { StateItem } from 'src/api/state-item/state-item.entity';
 import { Data } from 'src/api/data/data.entity';
 
 @Module({
@@ -21,7 +20,6 @@ import { Data } from 'src/api/data/data.entity';
 			Neuron,
 			Chain,
 			State,
-			StateItem,
 			Data, 
 		]),
 		RedisModule.forRoot({
@@ -43,6 +41,12 @@ import { Data } from 'src/api/data/data.entity';
 				port: Number(process.env.REDIS_QUEUE_PORT),
 				password: process.env.REDIS_QUEUE_PASSWORD,
 				db: Number(process.env.REDIS_QUEUE_DB),
+			}, {
+				namespace: 'State',
+				host: process.env.REDIS_STATE_HOST,
+				port: Number(process.env.REDIS_STATE_PORT),
+				password: process.env.REDIS_STATE_PASSWORD,
+				db: Number(process.env.REDIS_STATE_DB),
 			}],
 		}),
 		CacheModule,

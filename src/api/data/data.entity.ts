@@ -16,8 +16,6 @@ export class Data {
 	@Index({ unique: true })
 	public value: string;
 
-	@OneToMany(() => Chain, (chain) => chain.data, {
-		cascade: true,
-	})
+	@OneToMany(() => Chain, (chain) => chain.data)
 	public chains: Chain[];
 }
