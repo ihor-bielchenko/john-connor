@@ -62,9 +62,10 @@ export class NeuronTcpController extends TcpController {
 		console.log('111111111111111', { ...payload });
 
 		const { id, value } = await this.validateStep(payload);
+		const output = await this.service.step(id, value);
 
-		console.log('22222222222222', id, value);
+		console.log('22222222222222', id, value, output);
 
-		return await this.service.step(id, value);
+		return output;
 	}
 }
