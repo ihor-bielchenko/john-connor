@@ -34,6 +34,8 @@ export class NeuronTcpController extends TcpController {
 
 	@MessagePattern({ cmd: 'neuron.many' })
 	async many(payload) {
+		console.log('payload', payload);
+
 		return await super.many(payload);
 	}
 
