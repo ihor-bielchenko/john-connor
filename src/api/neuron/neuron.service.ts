@@ -277,7 +277,7 @@ export class NeuronService extends SqlService {
 		return await this.pass(nextNeuron['neuronId'], value);
 	}
 
-	async step(neuronId: number, value: string = ''): Promise<any> {
+	async process(neuronId: number, value: string = ''): Promise<any> {
 		const prevNeuronId = Number(await this.stateRedis.get('prevNeuronId'));
 		let neuronIdProcessed = neuronId;
 
@@ -285,7 +285,6 @@ export class NeuronService extends SqlService {
 			neuronIdProcessed = prevNeuronId;
 		}
 		const chain = await this.pass(neuronIdProcessed, value);
-		const chainProcessed = chain.join('-');
 		const chainItems = await this.chainRepository.find({
 			relations: {
 				data: true,
@@ -330,20 +329,70 @@ export class NeuronService extends SqlService {
 		await this.stateRedis.set('prevNeuronId', String(neuronId));
 
 		if (nextValue) {
-			const outputRecursive = await this.step(chain[chain.length - 1], nextValue);
+			const outputRecursive = await this.process(chain[chain.length - 1], nextValue);
 			const newChain = new Set([ 
 				...chain,
 				...outputRecursive['chain'], 
 			]);
 
 			return {
+				neuronId: neuronIdProcessed,
 				chain: Array.from(newChain),
 				value: outputRecursive['value'],
 			};
 		}
 		return {
+			neuronId: neuronIdProcessed,
 			chain,
 			value: await this.execute(value),
 		};
+	}
+
+	async step(neuronId: number, value: string = ''): Promise<any> {
+		const nextStep = await this.process(neuronId, value);
+		// const nextStepChainProcessed = nextStep['chain'].join('-');
+		// const currentState = await this.stateRepository.findOne({
+		// 	relations: {
+		// 		data: true,
+		// 	},
+		// 	where: {
+		// 		parentId: nextStep['neuronId'],
+		// 		value: nextStepChainProcessed,
+		// 		data: {
+		// 			value: nextStep['value'],
+		// 		},
+		// 	},
+		// });
+
+		// if (nextState['chain'].length === 2) {
+		// 	const chainTrue = await this.chainRepository.findOne({
+		// 		where: {
+		// 			parentId: nextState['chain'][0],
+		// 			neuronId: nextState['chain'][1],
+		// 			isTrue: true,
+		// 			data: {
+		// 				value: nextState['value'], 
+		// 			},
+		// 		},
+		// 	});
+		// }
+		// if (currentState) {
+		// 	const nextState = await this.stateRepository.findOne({
+		// 		relations: {
+		// 			data: true,
+		// 		},
+		// 		where: {
+		// 			id: currentState['nextId'],
+		// 		},
+		// 	});
+
+		// 	return nextState
+		// 		? ({
+		// 			chain: nextState['chain'],
+		// 			value: await this.execute(nextState['data']['value']),
+		// 		})
+		// 		: nextStep;
+		// }
+		return nextStep;
 	}
 }
