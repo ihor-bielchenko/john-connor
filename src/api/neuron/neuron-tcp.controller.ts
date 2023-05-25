@@ -64,7 +64,11 @@ export class NeuronTcpController extends TcpController {
 
 	@EventPattern('neuron.step')
 	async step(payload: object = {}) {
+		console.log('111111111111111', { ...payload });
+
 		const { id, value } = await this.validateStep(payload);
+
+		console.log('22222222222222', id, value);
 
 		return await this.service.step(id, value);
 	}

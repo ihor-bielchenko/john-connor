@@ -349,6 +349,8 @@ export class NeuronService extends SqlService {
 	}
 
 	async step(neuronId: number, value: string = ''): Promise<any> {
+		console.log('??????????????', neuronId, value);
+
 		const nextStep = await this.process(neuronId, value);
 		// const nextStepChainProcessed = nextStep['chain'].join('-');
 		// const currentState = await this.stateRepository.findOne({
