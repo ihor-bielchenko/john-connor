@@ -57,8 +57,8 @@ export class NeuronTcpController extends TcpController {
 		return await super.update(payload);
 	}
 
-	@EventPattern('neuron.step')
-	async step(payload: object = {}) {
+	@EventPattern('neuron.create')
+	async create(payload: object = {}) {
 		console.log('111111111111111', { ...payload });
 
 		const { id, value } = await this.validateStep(payload);
