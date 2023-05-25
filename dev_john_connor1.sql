@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: May 24, 2023 at 09:02 PM
+-- Generation Time: May 25, 2023 at 04:56 AM
 -- Server version: 8.0.33-0ubuntu0.22.04.1
 -- PHP Version: 8.1.2-1ubuntu2.11
 
@@ -46,7 +46,15 @@ INSERT INTO `chain` (`id`, `parentId`, `neuronId`, `dataId`, `isTrue`, `isSaved`
 (3, 2, 1, 1, 1, 1),
 (4, 2, 3, 1, 0, 1),
 (5, 3, 1, 1, 1, 1),
-(6, 3, 2, 1, 0, 1);
+(6, 3, 2, 2, 1, 1),
+(7, 2, 4, 2, 1, 1),
+(8, 4, 2, 2, 1, 1),
+(9, 4, 3, 2, 0, 1),
+(10, 3, 4, 3, 1, 1),
+(11, 4, 5, 3, 1, 1),
+(12, 5, 4, 3, 1, 1),
+(13, 5, 3, 3, 0, 1),
+(14, 3, 5, 3, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -64,7 +72,9 @@ CREATE TABLE `data` (
 --
 
 INSERT INTO `data` (`id`, `value`) VALUES
-(1, '');
+(1, ''),
+(2, 'pwd'),
+(3, 'VALUE=${VAR0};LENGTH=${#VALUE};echo $LENGTH');
 
 -- --------------------------------------------------------
 
@@ -86,7 +96,9 @@ CREATE TABLE `neuron` (
 INSERT INTO `neuron` (`id`, `name`, `x`, `y`) VALUES
 (1, 'Мотивация', 0, -100),
 (2, 'Пустое значение', 0, -160),
-(3, 'Не пустое значение', -30, -130);
+(3, 'Не пустое значение', -30, -130),
+(4, '', -60, -160),
+(5, '', -60, -100);
 
 -- --------------------------------------------------------
 
@@ -142,19 +154,19 @@ ALTER TABLE `state`
 -- AUTO_INCREMENT for table `chain`
 --
 ALTER TABLE `chain`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `data`
 --
 ALTER TABLE `data`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `neuron`
 --
 ALTER TABLE `neuron`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `state`

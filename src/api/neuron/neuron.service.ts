@@ -1,5 +1,7 @@
 const { exec } = require('child_process');
 
+import Redis from 'ioredis';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { 
@@ -7,6 +9,7 @@ import {
 	Connection, 
 	Not,
 } from 'typeorm';
+import { str as utilsCheckStr } from '@nest-datum-utils/check';
 import { SqlService } from '@nest-datum/sql';
 import { CacheService } from '@nest-datum/cache';
 import { Neuron } from './neuron.entity';
@@ -14,7 +17,8 @@ import { Chain } from '../chain/chain.entity';
 import { State } from '../state/state.entity';
 import { Data } from '../data/data.entity';
 
-let _prevNeuronId;
+let _prevNeuronId,
+	_prevChain;
 
 @Injectable()
 export class NeuronService extends SqlService {
@@ -28,6 +32,7 @@ export class NeuronService extends SqlService {
 		@InjectRepository(Chain) protected readonly chainRepository: Repository<Chain>,
 		@InjectRepository(State) protected readonly stateRepository: Repository<State>,
 		@InjectRepository(Data) protected readonly dataRepository: Repository<Data>,
+		@InjectRedis('State') protected readonly stateRedis: Redis,
 		protected readonly connection: Connection,
 		protected readonly repositoryCache: CacheService,
 	) {
@@ -96,15 +101,51 @@ export class NeuronService extends SqlService {
 		return output.filter((pointItem) => !neuronItems.find((neuronItem) => neuronItem['x'] === pointItem['x'] && neuronItem['y'] === pointItem['y']));
 	}
 
+	async getRedisVarString(value: string = ''): Promise<string> {
+		let varName = '${VAR',
+			redisIndex = '';
+		const varIndex = value.indexOf(varName);
+
+		if (varIndex >= 0) {
+			let i = varIndex + 5;
+
+			while (i < value.length) {
+				if (Number(value[i]) >= 0) {
+					redisIndex += value[i];
+					varName += value[i];
+				}
+				else {
+					break;
+				}
+				i++;
+			}
+		}
+		if (redisIndex) {
+			const varValue = ((await this.stateRedis.lrange('1', Number(redisIndex), 0)) || [])[0];
+			const valueProcessed = value.replace(`${varName}}`, `"${varValue}"`);
+
+			return await this.getRedisVarString(valueProcessed);
+		}
+		return value;
+	}
+
 	async execute(value: string = ''): Promise<string> {
-		return await (new Promise((resolve, reject) => {
-			exec(value, (error, stdout, stderr) => {
+		return await (new Promise(async (resolve, reject) => {
+			const valueProcessed = await this.getRedisVarString(value);
+
+			exec(valueProcessed, async (error, stdout, stderr) => {
 				if (error) {
+					await this.stateRedis.lpush('1', error.message);
+
 					return resolve(error.message);
 				}
 				if (stderr) {
+					await this.stateRedis.lpush('1', stderr);
+
 					return resolve(stderr);
 				}
+				await this.stateRedis.lpush('1', stdout);
+
 				return resolve(stdout);
 			});
 		}));
@@ -135,7 +176,7 @@ export class NeuronService extends SqlService {
 		if (chainTrue) {
 			return chainTrue;
 		}
-		return (await this.chainRepository.findOne({
+		const chainFalse = (await this.chainRepository.findOne({
 			relations: {
 				data: true,
 			},
@@ -167,6 +208,8 @@ export class NeuronService extends SqlService {
 				id: 'DESC',
 			},
 		}));
+
+		return chainFalse;
 	}
 
 	async pass(neuronId: number, value: string = ''): Promise<Array<number>> {
@@ -235,10 +278,11 @@ export class NeuronService extends SqlService {
 	}
 
 	async step(neuronId: number, value: string = ''): Promise<any> {
+		const prevNeuronId = Number(await this.stateRedis.get('prevNeuronId'));
 		let neuronIdProcessed = neuronId;
 
-		if (_prevNeuronId) {
-			neuronIdProcessed = _prevNeuronId;
+		if (prevNeuronId > 0) {
+			neuronIdProcessed = prevNeuronId;
 		}
 		const chain = await this.pass(neuronIdProcessed, value);
 		const chainProcessed = chain.join('-');
@@ -283,7 +327,7 @@ export class NeuronService extends SqlService {
 		}
 		this.clearCurrentChain();
 
-		_prevNeuronId = neuronId;
+		await this.stateRedis.set('prevNeuronId', String(neuronId));
 
 		if (nextValue) {
 			const outputRecursive = await this.step(chain[chain.length - 1], nextValue);

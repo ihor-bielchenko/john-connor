@@ -1,7 +1,7 @@
 import { 
 	Controller,
-	Get,
-	Query,
+	Post,
+	Body,
 	MethodNotAllowedException,
 } from '@nestjs/common';
 import { strToArr as utilsFormatStrToArr } from '@nest-datum-utils/format';
@@ -33,10 +33,10 @@ export class NeuronHttpController extends HttpController {
 		};
 	}
 
-	@Get('step')
+	@Post('step')
 	async step(
-		@Query('id') id: number,
-		@Query('value') value: string,
+		@Body('id') id: number,
+		@Body('value') value: string,
 	) {
 		return await this.serviceHandlerWrapper(async () => {
 			const options = await this.validateStep({
