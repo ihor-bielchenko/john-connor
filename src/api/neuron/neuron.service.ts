@@ -17,6 +17,8 @@ import { Chain } from '../chain/chain.entity';
 import { State } from '../state/state.entity';
 import { Data } from '../data/data.entity';
 
+let _stepIndex = 0;
+
 @Injectable()
 export class NeuronService extends SqlService {
 	protected readonly withTwoStepRemoval: boolean = true;
@@ -123,9 +125,15 @@ export class NeuronService extends SqlService {
 			x: x,
 			y: y - 60,
 		}];
-		const neuronItems = await this.repository.find({ where: output });
 
-		return output.filter((pointItem) => !neuronItems.find((neuronItem) => neuronItem['x'] === pointItem['x'] && neuronItem['y'] === pointItem['y']));
+		_stepIndex = (_stepIndex >= 0 && _stepIndex < output.length)
+			? (_stepIndex + 1)
+			: 0;
+
+		const mixed: any = [ ...output.splice(_stepIndex), ...output.slice(0, _stepIndex) ];
+		const neuronItems = await this.repository.find({ where: mixed });
+
+		return mixed.filter((pointItem) => !neuronItems.find((neuronItem) => neuronItem['x'] === pointItem['x'] && neuronItem['y'] === pointItem['y']));
 	}
 
 	async getRedisVarString(value: string = ''): Promise<string> {
