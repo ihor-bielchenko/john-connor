@@ -17,9 +17,6 @@ import { Chain } from '../chain/chain.entity';
 import { State } from '../state/state.entity';
 import { Data } from '../data/data.entity';
 
-let _prevNeuronId,
-	_prevChain;
-
 @Injectable()
 export class NeuronService extends SqlService {
 	protected readonly withTwoStepRemoval: boolean = true;
@@ -75,6 +72,36 @@ export class NeuronService extends SqlService {
 		return (this.chain = []);
 	}
 
+	async createStateId(): Promise<number> {
+		const output = Number(this.stateRedis.get('stateId') || 0) + 1;
+
+		await this.stateRedis.set('stateId', output);
+
+		return output;
+	}
+
+	async execute(value: string = ''): Promise<string> {
+		return await (new Promise(async (resolve, reject) => {
+			const valueProcessed = await this.getRedisVarString(value);
+
+			exec(valueProcessed, async (error, stdout, stderr) => {
+				if (error) {
+					await this.stateRedis.lpush('var.1', error.message);
+
+					return resolve(error.message);
+				}
+				if (stderr) {
+					await this.stateRedis.lpush('var.1', stderr);
+
+					return resolve(stderr);
+				}
+				await this.stateRedis.lpush('var.1', stdout);
+
+				return resolve(stdout);
+			});
+		}));
+	}
+
 	async getFreePoints(id: number): Promise<Array<number>> {
 		const parentNeuronItem = (await this.repository.findOne({
 			where: {
@@ -121,34 +148,12 @@ export class NeuronService extends SqlService {
 			}
 		}
 		if (redisIndex) {
-			const varValue = ((await this.stateRedis.lrange('1', Number(redisIndex), 0)) || [])[0];
+			const varValue = ((await this.stateRedis.lrange('var.1', Number(redisIndex), 0)) || [])[0];
 			const valueProcessed = value.replace(`${varName}}`, `"${varValue}"`);
 
 			return await this.getRedisVarString(valueProcessed);
 		}
 		return value;
-	}
-
-	async execute(value: string = ''): Promise<string> {
-		return await (new Promise(async (resolve, reject) => {
-			const valueProcessed = await this.getRedisVarString(value);
-
-			exec(valueProcessed, async (error, stdout, stderr) => {
-				if (error) {
-					await this.stateRedis.lpush('1', error.message);
-
-					return resolve(error.message);
-				}
-				if (stderr) {
-					await this.stateRedis.lpush('1', stderr);
-
-					return resolve(stderr);
-				}
-				await this.stateRedis.lpush('1', stdout);
-
-				return resolve(stdout);
-			});
-		}));
 	}
 
 	async getDataIdByValue(value: string = ''): Promise<number> {
@@ -326,75 +331,68 @@ export class NeuronService extends SqlService {
 		}
 		this.clearCurrentChain();
 
-		await this.stateRedis.set('prevNeuronId', String(neuronId));
+		await this.stateRedis.set('prevNeuronId', neuronId);
 
-		if (nextValue) {
-			const outputRecursive = await this.process(chain[chain.length - 1], nextValue);
-			const newChain = new Set([ 
-				...chain,
-				...outputRecursive['chain'], 
-			]);
-
-			return {
-				neuronId: neuronIdProcessed,
-				chain: Array.from(newChain),
-				value: outputRecursive['value'],
-			};
-		}
 		return {
-			neuronId: neuronIdProcessed,
 			chain,
-			value: await this.execute(value),
+			neuronId: neuronIdProcessed,
+			value: nextValue
+				? nextValue
+				: await this.execute(value),
 		};
 	}
 
 	async step(neuronId: number, value: string = ''): Promise<any> {
-		console.log('??????????????', neuronId, value);
-
 		const nextStep = await this.process(neuronId, value);
-		// const nextStepChainProcessed = nextStep['chain'].join('-');
-		// const currentState = await this.stateRepository.findOne({
-		// 	relations: {
-		// 		data: true,
-		// 	},
-		// 	where: {
-		// 		parentId: nextStep['neuronId'],
-		// 		value: nextStepChainProcessed,
-		// 		data: {
-		// 			value: nextStep['value'],
-		// 		},
-		// 	},
-		// });
+		const nextStepChainProcessed = nextStep['chain'].join('-');
+		const currentState = await this.stateRepository.findOne({
+			relations: {
+				data: true,
+			},
+			where: {
+				prevId: nextStep['neuronId'],
+				value: nextStepChainProcessed,
+				data: {
+					value: nextStep['value'],
+				},
+			},
+		});
 
-		// if (nextState['chain'].length === 2) {
-		// 	const chainTrue = await this.chainRepository.findOne({
-		// 		where: {
-		// 			parentId: nextState['chain'][0],
-		// 			neuronId: nextState['chain'][1],
-		// 			isTrue: true,
-		// 			data: {
-		// 				value: nextState['value'], 
-		// 			},
-		// 		},
-		// 	});
-		// }
-		// if (currentState) {
-		// 	const nextState = await this.stateRepository.findOne({
-		// 		relations: {
-		// 			data: true,
-		// 		},
-		// 		where: {
-		// 			id: currentState['nextId'],
-		// 		},
-		// 	});
+		await this.stateRedis.lpush(`chainState.1`, JSON.stringify({
+			id: await this.createStateId(),
+			prevId: nextStep['neuronId'],
+			value: nextStepChainProcessed,
+			data: {
+				value: nextStep['value'],
+			},
+		}));
 
-		// 	return nextState
-		// 		? ({
-		// 			chain: nextState['chain'],
-		// 			value: await this.execute(nextState['data']['value']),
-		// 		})
-		// 		: nextStep;
-		// }
+		if (await this.stateRedis.llen(`chainState.1`) > 2) {
+			const currentState = JSON.parse(await this.stateRedis.rpop(`chainState.1`));
+			const nextState = JSON.parse(await this.stateRedis.lindex(`chainState.1`, 0, 1));
+
+			await this.stateRepository.save({
+				...currentState,
+				nextId: nextState['id'],
+			});
+		}
+		if (currentState) {
+			const nextState = await this.stateRepository.findOne({
+				relations: {
+					data: true,
+				},
+				where: {
+					id: currentState['nextId'],
+				},
+			});
+
+			return nextState
+				? ({
+					chain: nextState['chain'],
+					value: nextState['data']['value'],
+				})
+				: nextStep;
+		}
 		return nextStep;
 	}
 }
