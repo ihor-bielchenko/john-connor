@@ -116,10 +116,10 @@ export class NeuronService extends SqlService {
 			x: x,
 			y: y + 60,
 		}, {
-			x: x - 60,
+			x: x - 30,
 			y: y,
 		}, {
-			x: x + 60,
+			x: x + 30,
 			y: y,
 		}, {
 			x: x,
@@ -367,7 +367,7 @@ export class NeuronService extends SqlService {
 			});
 
 		await this.stateRedis.lpush(`chainState.1`, JSON.stringify((nextState = {
-			id: await this.createStateId(),
+			id: (currentState || {})['id'] || await this.createStateId(),
 			prevId: nextStep['neuronId'],
 			value: nextStepChainProcessed,
 			data: {
