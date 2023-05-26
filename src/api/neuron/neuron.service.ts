@@ -336,9 +336,10 @@ export class NeuronService extends SqlService {
 		return {
 			chain,
 			neuronId: neuronIdProcessed,
-			value: nextValue
+			isExecute: utilsCheckStr(nextValue),
+			value: utilsCheckStr(nextValue)
 				? nextValue
-				: await this.execute(value),
+				: value,
 		};
 	}
 
@@ -369,7 +370,7 @@ export class NeuronService extends SqlService {
 
 		if (await this.stateRedis.llen(`chainState.1`) > 2) {
 			const currentState = JSON.parse(await this.stateRedis.rpop(`chainState.1`));
-			const nextState = JSON.parse(await this.stateRedis.lindex(`chainState.1`, 0, 1));
+			const nextState = JSON.parse(await this.stateRedis.lindex(`chainState.1`, 1));
 
 			await this.stateRepository.save({
 				...currentState,
@@ -391,8 +392,18 @@ export class NeuronService extends SqlService {
 					chain: nextState['chain'],
 					value: nextState['data']['value'],
 				})
-				: nextStep;
+				: ({
+					chain: nextStep['chain'],
+					value: nextStep['isExecute']
+						? await this.execute(nextStep['value'])
+						: nextStep['value'],
+				});
 		}
-		return nextStep;
+		return ({
+			chain: nextStep['chain'],
+			value: nextStep['isExecute']
+				? await this.execute(nextStep['value'])
+				: nextStep['value'],
+		});
 	}
 }

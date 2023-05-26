@@ -6,6 +6,7 @@ import {
 	OneToMany,
 } from 'typeorm';
 import { Chain } from '../chain/chain.entity';
+import { State } from '../state/state.entity';
 
 @Entity()
 export class Data {
@@ -18,4 +19,7 @@ export class Data {
 
 	@OneToMany(() => Chain, (chain) => chain.data)
 	public chains: Chain[];
+
+	@OneToMany(() => State, (state) => state.data)
+	public states: State[];
 }

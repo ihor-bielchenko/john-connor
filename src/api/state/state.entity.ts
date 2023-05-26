@@ -5,7 +5,7 @@ import {
 	ManyToOne,
 	OneToMany,
 } from 'typeorm';
-import { Neuron } from '../neuron/neuron.entity';
+import { Data } from '../data/data.entity';
 
 @Entity()
 export class State {
@@ -13,17 +13,17 @@ export class State {
 	public id: number;
 
 	@Column()
-	public neuronId: number;
+	public prevId: number;
 
-	@ManyToOne(() => Neuron, (neuron) => neuron.states, {
-		onDelete: 'CASCADE',
-		onUpdate: 'CASCADE',
-	})
-	public neuron: Neuron;
+	@Column()
+	public nextId: number;
+
+	@Column({ default: 0 })
+	public dataId: number;
+
+	@ManyToOne(() => Data, (data) => data.states)
+	public data: Data;
 
 	@Column()
 	public value: string;
-
-	@Column({ default: 0 })
-	public used: number;
 }
