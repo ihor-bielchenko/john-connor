@@ -354,31 +354,32 @@ export class NeuronService extends SqlService {
 	async step(neuronId: number, value: string = ''): Promise<any> {
 		const nextStep = await this.process(neuronId, value);
 		const nextStepChainProcessed = nextStep['chain'].join('-');
-		const currentState = await this.stateRepository.findOne({
-			relations: {
-				data: true,
-			},
-			where: {
-				prevId: nextStep['neuronId'],
-				value: nextStepChainProcessed,
-				data: {
-					value: nextStep['value'],
+		let nextState,
+			currentState = await this.stateRepository.findOne({
+				relations: {
+					data: true,
 				},
-			},
-		});
+				where: {
+					prevId: nextStep['neuronId'],
+					value: nextStepChainProcessed,
+					data: {
+						value: nextStep['value'],
+					},
+				},
+			});
 
-		await this.stateRedis.lpush(`chainState.1`, JSON.stringify({
+		await this.stateRedis.lpush(`chainState.1`, JSON.stringify((nextState = {
 			id: await this.createStateId(),
 			prevId: nextStep['neuronId'],
 			value: nextStepChainProcessed,
 			data: {
 				value: nextStep['value'],
 			},
-		}));
+		})));
 
 		if (await this.stateRedis.llen(`chainState.1`) > 2) {
-			const currentState = JSON.parse(await this.stateRedis.rpop(`chainState.1`));
-			const nextState = JSON.parse(await this.stateRedis.lindex(`chainState.1`, 1));
+			currentState = JSON.parse(await this.stateRedis.rpop(`chainState.1`));
+			nextState = JSON.parse(await this.stateRedis.lindex(`chainState.1`, 1));
 
 			await this.stateRepository.save({
 				...currentState,
@@ -386,7 +387,7 @@ export class NeuronService extends SqlService {
 			});
 		}
 		if (currentState) {
-			const nextState = await this.stateRepository.findOne({
+			const nextStateSaved = await this.stateRepository.findOne({
 				relations: {
 					data: true,
 				},
@@ -395,19 +396,16 @@ export class NeuronService extends SqlService {
 				},
 			});
 
-			return nextState
-				? ({
-					chain: nextState['chain'],
-					value: nextState['data']['value'],
-				})
-				: ({
-					chain: nextStep['chain'],
-					value: nextStep['isExecute']
-						? await this.execute(nextStep['value'])
-						: nextStep['value'],
-				});
+			if (nextStateSaved) {
+				return {
+					stateId: nextStateSaved['id'],
+					chain: nextStateSaved['chain'],
+					value: nextStateSaved['data']['value'],
+				};
+			};
 		}
 		return ({
+			stateId: nextState['id'],
 			chain: nextStep['chain'],
 			value: nextStep['isExecute']
 				? await this.execute(nextStep['value'])
